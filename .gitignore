@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Project Specific Data Files (Optional: If you don't want to upload large datasets to GitHub)
+# The prediction files and source logic should be deployed, but big raw data might hit GitHub's 100MB limit
+# Uncomment the following lines if you want to explicitly exclude raw data from the repo:
+# train_hh_features.csv
+# test_hh_features.csv
+# train_hh_gt.csv
+# train_rates_gt.csv
+# submission_format_qVtthJC.zip
