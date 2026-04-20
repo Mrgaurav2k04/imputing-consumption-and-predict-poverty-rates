@@ -35,4 +35,4 @@ Features include:
 ## 🚀 How to Run
 1. **Clone the Repo:**
    ```bash
-   git clone [https://https://github.com/Mrgaurav2k04/imputing-consumption-and-predict-poverty-rates)
+   git clone (https://github.com/Mrgaurav2k04/imputing-consumption-and-predict-poverty-rates)
