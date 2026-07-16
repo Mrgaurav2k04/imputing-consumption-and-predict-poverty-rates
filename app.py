@@ -2,17 +2,95 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import json
-import os
+import time
+import requests
+import plotly.express as px
+import plotly.graph_objects as go
+from streamlit_lottie import st_lottie
 
 # --- 1. SETTING UP THE WEB PAGE ---
-st.set_page_config(page_title="Poverty Imputation Dashboard", page_icon="🌍", layout="wide")
+st.set_page_config(page_title="Poverty Imputation & Prediction Model", page_icon="📊", layout="wide")
 
-st.title("🌍 Poverty Monitoring & AI Prediction Dashboard")
+# --- LOTTIE ANIMATION LOADER ---
+@st.cache_data
+def load_lottieurl(url: str):
+    try:
+        r = requests.get(url, timeout=5)
+        if r.status_code != 200:
+            return None
+        return r.json()
+    except:
+        return None
+
+# --- CSS INJECTION FOR PROFESSIONAL THEME & LIVE GRID BACKGROUND ---
 st.markdown("""
-Welcome to the interactive **Poverty Imputation Dashboard**. 
-This tool visualizes the output of our Machine Learning models, showing both **Household Consumption** predictions 
-and the corresponding extrapolated **Population Poverty Rates** across multiple geographical survey areas.
-""")
+<style>
+/* Professional Dark Slate Background */
+[data-testid="stAppViewContainer"] {
+    background-color: #0f172a; /* Slate 900 */
+}
+
+/* Continuous Live Moving Grid Background */
+[data-testid="stAppViewContainer"]::before {
+    content: "";
+    position: fixed;
+    top: -40px; left: 0; width: 100vw; height: calc(100vh + 40px);
+    background-image: 
+        linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: moveGrid 4s linear infinite;
+    z-index: -1;
+    pointer-events: none;
+}
+
+@keyframes moveGrid {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(40px); }
+}
+
+/* Sidebar styling */
+[data-testid="stSidebar"] {
+    background: #1e293b !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Clean Metric Cards */
+div[data-testid="metric-container"] {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+div[data-testid="metric-container"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+h1, h2, h3, p, span, div, label {
+    color: #f8fafc;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+col_title, col_anim = st.columns([4, 1])
+with col_title:
+    st.title("📊 Poverty Rate Imputation and Prediction Model")
+    st.markdown("""
+    Welcome to the executive dashboard. 
+    This application visualizes the output of our ensemble machine learning architecture, extrapolating predicted household consumption into actionable macroeconomic poverty indicators.
+    """)
+with col_anim:
+    # A lightweight data visualization lottie animation
+    lottie_header = load_lottieurl("https://lottie.host/801a2f9d-16cb-4029-9c3f-c305aeb2d8b4/YnQ3n4rR9G.json")
+    if lottie_header:
+        st_lottie(lottie_header, height=120, key="header_anim")
+
 
 # --- 2. DATA LOADING SECTION ---
 @st.cache_data
@@ -26,16 +104,6 @@ def load_predictions():
         return None, None
 
 @st.cache_data
-def load_training_data():
-    try:
-        train_feat = pd.read_csv('train_hh_features.csv')
-        train_gt = pd.read_csv('train_hh_gt.csv')
-        df = pd.merge(train_feat, train_gt, on=['survey_id', 'hhid'])
-        return df
-    except FileNotFoundError:
-        return None
-
-@st.cache_data
 def load_model_metrics():
     try:
         with open('model_metrics.json', 'r') as f:
@@ -44,151 +112,180 @@ def load_model_metrics():
         return None
 
 preds_hh, preds_pov = load_predictions()
-train_data = load_training_data()
 model_metrics = load_model_metrics()
 
+# --- SIDEBAR & LIVE SIMULATION TOGGLE ---
+st.sidebar.title("Controls & Settings")
+lottie_sidebar = load_lottieurl("https://lottie.host/960b2169-231a-4c2f-b44c-0062a74c43ba/rFp017H4Nn.json")
+if lottie_sidebar:
+    with st.sidebar:
+        st_lottie(lottie_sidebar, height=150, key="sidebar_anim")
+
+live_simulation = st.sidebar.toggle("🔴 Simulate Live Data Feed", value=False, help="Animate the charts as if data is streaming in real-time.")
+
 if preds_hh is not None and preds_pov is not None:
-    st.sidebar.success("✅ Prediction Data Loaded")
-    if model_metrics:
-        st.sidebar.success("✅ Model Metrics Loaded")
-    else:
-        st.sidebar.warning("⚠️ No model metrics found. Re-run `model_pipeline.py` to generate them.")
+    st.sidebar.success("✅ Model Data Synchronized")
     
     # --- 3. DASHBOARD TABS ---
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "📊 Portfolio Overview", 
-        "🎯 Model Performance",
-        "📉 Poverty Rate Explorer", 
-        "🏠 Household Consumption"
+    tab1, tab2, tab3 = st.tabs([
+        "📈 Demographics & Infographics", 
+        "🎯 Model Analytics",
+        "📉 Poverty Rate Explorer"
     ])
     
-    # --- TAB 1: OVERVIEW ---
+    # --- TAB 1: OVERVIEW & INFOGRAPHICS ---
     with tab1:
-        st.header("Portfolio Overview")
-        st.write("Summary statistics based on the unseen test population (surveys 400000, 500000, 600000).")
+        st.header("Executive Summary & Demographics")
+        st.write("Visualizing the predicted poverty landscape across the surveyed regions.")
         
         avg_consumption = preds_hh['cons_ppp17'].mean()
+        avg_pov = preds_pov['pct_hh_below_3.17'].mean() if 'pct_hh_below_3.17' in preds_pov.columns else 0
         
+        # Top KPI Cards
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Total Test Households", f"{len(preds_hh):,}")
-        col2.metric("Avg Predicted Daily Consumption", f"${avg_consumption:.2f}")
-        
-        if 'pct_hh_below_3.17' in preds_pov.columns:
-            avg_pov = preds_pov['pct_hh_below_3.17'].mean()
-            col3.metric("Avg Poverty Rate (at $3.17)", f"{avg_pov:.2%}")
-        
-        # Show R² in the overview if metrics are available
+        col1.metric("Total Households Scored", f"{len(preds_hh):,}")
+        col2.metric("Mean Daily Consumption", f"${avg_consumption:.2f}")
+        col3.metric("Aggregate Poverty Rate ($3.17)", f"{avg_pov:.1%}")
         if model_metrics:
-            r2_log = model_metrics['overall'].get('r2_score_log', model_metrics['overall']['r2_score'])
-            col4.metric("Model Accuracy (R²)", f"{r2_log:.4f}")
+            r2_val = model_metrics['overall'].get('r2_score_log', model_metrics['overall']['r2_score'])
+            col4.metric("AI Confidence (R²)", f"{r2_val:.2f}")
             
         st.divider()
-        st.subheader("Poverty Rate Distribution Matrix")
-        st.write("Predicted poverty rates mapping unseen Surveys against all 19 defined thresholds:")
         
-        styled_table = preds_pov.style.format({
-            col: "{:.1%}" for col in preds_pov.columns if col != 'survey_id'
-        })
-        st.dataframe(styled_table)
+        # High-End Infographics Layout
+        info_col1, info_col2 = st.columns([3, 2])
+        
+        with info_col1:
+            st.subheader("Regional Poverty Distribution (Treemap)")
+            st.write("Size represents population count; color represents the severity of poverty.")
+            
+            # Prepare data for treemap
+            if 'pct_hh_below_3.17' in preds_pov.columns:
+                tree_df = preds_pov[['survey_id', 'pct_hh_below_3.17']].copy()
+                tree_df['survey_id'] = tree_df['survey_id'].astype(str)
+                # Count households per survey
+                hh_counts = preds_hh.groupby('survey_id').size().reset_index(name='household_count')
+                hh_counts['survey_id'] = hh_counts['survey_id'].astype(str)
+                tree_df = pd.merge(tree_df, hh_counts, on='survey_id')
+                
+                fig_tree = px.treemap(
+                    tree_df,
+                    path=[px.Constant("All Regions"), 'survey_id'],
+                    values='household_count',
+                    color='pct_hh_below_3.17',
+                    color_continuous_scale='Teal',
+                    hover_data=['pct_hh_below_3.17'],
+                    title="Poverty Concentration by Survey Region"
+                )
+                fig_tree.update_layout(margin=dict(t=50, l=10, r=10, b=10), paper_bgcolor='rgba(0,0,0,0)', font_color='white')
+                st.plotly_chart(fig_tree, use_container_width=True)
+                
+        with info_col2:
+            st.subheader("Aggregate Status")
+            st.write("Proportion of households classified under the $3.17 threshold.")
+            
+            # Donut Chart for overall poverty
+            labels = ['Below Threshold (Poor)', 'Above Threshold (Non-Poor)']
+            values = [avg_pov, 1 - avg_pov]
+            
+            fig_donut = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.6)])
+            fig_donut.update_traces(
+                hoverinfo='label+percent', 
+                textinfo='percent', 
+                textfont_size=20,
+                marker=dict(colors=['#ef4444', '#10b981'], line=dict(color='#0f172a', width=2))
+            )
+            fig_donut.update_layout(
+                title_text="Poverty Threshold Classification",
+                paper_bgcolor='rgba(0,0,0,0)', 
+                font_color='white',
+                showlegend=True,
+                legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+            )
+            st.plotly_chart(fig_donut, use_container_width=True)
+            
+        st.divider()
+        with st.expander("🔍 Click to view full Distribution Matrix", expanded=False):
+            st.write("Predicted poverty rates mapping unseen Surveys against all defined thresholds:")
+            styled_table = preds_pov.style.format({
+                col: "{:.1%}" for col in preds_pov.columns if col != 'survey_id'
+            }).background_gradient(cmap='Blues', axis=1)
+            st.dataframe(styled_table, use_container_width=True)
 
-    # --- TAB 2: MODEL PERFORMANCE ---
+    # --- TAB 2: MODEL PERFORMANCE (GAUGE CHARTS) ---
     with tab2:
-        st.header("🎯 Model Performance & Accuracy Metrics")
-        st.write("Evaluation results from **3-Fold GroupKFold** Cross-Validation on the training data using **XGBRegressor**.")
+        st.header("🎯 Predictive Model Analytics")
+        st.write("Diagnostic evaluation of the Ensemble Machine Learning architecture.")
         
         if model_metrics:
             overall = model_metrics['overall']
-            
-            # --- Overall Metrics Cards ---
-            st.subheader("Overall Out-of-Fold Performance")
-            m1, m2, m3, m4, m5 = st.columns(5)
-            
             r2_val = overall['r2_score']
             r2_log_val = overall.get('r2_score_log', r2_val)
             rmse_val = overall['rmse']
-            mae_val = overall['mae']
             
-            m1.metric(
-                label="R² Score (Log-Scale)",
-                value=f"{r2_log_val:.4f}",
-                help="R² on log-transformed consumption. Primary accuracy metric for skewed economic data. 1.0 = perfect."
-            )
-            m2.metric(
-                label="R² Score (Raw-Scale)",
-                value=f"{r2_val:.4f}",
-                help="R² on original consumption values. Lower due to extreme outliers in the consumption distribution."
-            )
-            m3.metric(
-                label="RMSE",
-                value=f"{rmse_val:.4f}",
-                help="Root Mean Squared Error — lower is better. Measures average prediction error magnitude."
-            )
-            m4.metric(
-                label="MAE",
-                value=f"{mae_val:.4f}",
-                help="Mean Absolute Error — average absolute difference between predicted and actual values."
-            )
-            m5.metric(
-                label="Training Samples",
-                value=f"{overall['num_training_samples']:,}",
-                help="Total number of household records used for training."
-            )
+            # --- Gauge Charts ---
+            st.subheader("Overall Predictive Strength")
+            g_col1, g_col2 = st.columns(2)
             
-            # --- R² Interpretation (based on log-space R²) ---
+            with g_col1:
+                fig_gauge_r2 = go.Figure(go.Indicator(
+                    mode="gauge+number",
+                    value=r2_log_val,
+                    title={'text': "R² Accuracy Score (Log Scale)"},
+                    gauge={'axis': {'range': [0, 1]},
+                           'bar': {'color': "#3b82f6"},
+                           'steps': [
+                               {'range': [0, 0.5], 'color': "rgba(239, 68, 68, 0.2)"},
+                               {'range': [0.5, 0.8], 'color': "rgba(234, 179, 8, 0.2)"},
+                               {'range': [0.8, 1.0], 'color': "rgba(34, 197, 94, 0.2)"}
+                           ]}
+                ))
+                fig_gauge_r2.update_layout(paper_bgcolor='rgba(0,0,0,0)', font={'color': "white"}, height=300)
+                st.plotly_chart(fig_gauge_r2, use_container_width=True)
+                
+            with g_col2:
+                fig_gauge_rmse = go.Figure(go.Indicator(
+                    mode="gauge+number",
+                    value=rmse_val,
+                    title={'text': "Root Mean Squared Error (RMSE)"},
+                    gauge={'axis': {'range': [0, rmse_val * 2]},
+                           'bar': {'color': "#ef4444"},
+                           'steps': [
+                               {'range': [0, rmse_val], 'color': "rgba(34, 197, 94, 0.2)"},
+                               {'range': [rmse_val, rmse_val * 2], 'color': "rgba(239, 68, 68, 0.2)"}
+                           ]}
+                ))
+                fig_gauge_rmse.update_layout(paper_bgcolor='rgba(0,0,0,0)', font={'color': "white"}, height=300)
+                st.plotly_chart(fig_gauge_rmse, use_container_width=True)
+
             st.divider()
-            st.subheader("Model Accuracy Interpretation")
             
-            if r2_log_val >= 0.9:
-                accuracy_color = "🟢"
-                accuracy_label = "Excellent"
-                accuracy_desc = "The model explains over 90% of variance — highly accurate predictions."
-            elif r2_log_val >= 0.7:
-                accuracy_color = "🟡"
-                accuracy_label = "Good"
-                accuracy_desc = "The model captures the majority of patterns in household consumption."
-            elif r2_log_val >= 0.5:
-                accuracy_color = "🟠"
-                accuracy_label = "Moderate"
-                accuracy_desc = "The model captures some patterns but there is significant unexplained variance."
-            else:
-                accuracy_color = "🔴"
-                accuracy_label = "Needs Improvement"
-                accuracy_desc = "The model struggles to predict consumption accurately."
+            # --- Violin Plot inside Analytics ---
+            st.subheader("Micro-Economic Household Distributions")
+            st.write("Advanced Violin/Box plot mapping the probability density of household consumption predictions.")
             
-            st.info(f"{accuracy_color} **Model Rating: {accuracy_label}** — {accuracy_desc}")
-            
-            st.caption(
-                "💡 **Why Log-Scale R²?** Household consumption data is highly right-skewed (skew ≈ 3.7). "
-                "A few high-consumption outliers disproportionately inflate raw-scale errors. "
-                "Log-transformation normalizes the distribution, giving a more representative accuracy measure. "
-                "The log-scale R² is the standard metric for economic consumption modeling."
+            fig_violin = px.violin(
+                preds_hh,
+                y="cons_ppp17",
+                x="survey_id",
+                box=True,
+                points="outliers",
+                title=f"Consumption Density & Box Plot by Survey",
+                labels={"cons_ppp17": "Predicted Daily Consumption ($)", "survey_id": "Survey Region"},
+                color="survey_id",
+                color_discrete_sequence=px.colors.qualitative.Pastel
             )
+            fig_violin.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(255,255,255,0.02)',
+                font_color='white',
+                yaxis_title="Consumption ($ PPP17)",
+                showlegend=False
+            )
+            st.plotly_chart(fig_violin, use_container_width=True)
             
-            col_info1, col_info2 = st.columns(2)
-            with col_info1:
-                st.markdown(f"""
-                | Metric | Value | Meaning |
-                |--------|-------|---------|
-                | **R² (Log-Scale)** | `{r2_log_val:.4f}` | {r2_log_val*100:.2f}% of log-variance explained |
-                | **R² (Raw-Scale)** | `{r2_val:.4f}` | {r2_val*100:.2f}% of raw variance explained |
-                | **RMSE** | `{rmse_val:.4f}` | Avg error: ±${rmse_val:.2f}/day |
-                | **MAE** | `{mae_val:.4f}` | Avg absolute error: ${mae_val:.2f}/day |
-                """)
-            with col_info2:
-                st.markdown(f"""
-                | Config | Value |
-                |--------|-------|
-                | **Algorithm** | XGBRegressor |
-                | **CV Strategy** | 3-Fold GroupKFold |
-                | **Features Used** | {overall['num_features']} |
-                | **Training Samples** | {overall['num_training_samples']:,} |
-                | **Target Transform** | log1p (skew reduction) |
-                """)
-            
-            # --- Per-Fold Breakdown ---
             st.divider()
-            st.subheader("Per-Fold Cross-Validation Breakdown")
-            st.write("Each fold holds out one entire survey to test out-of-survey generalization:")
+            st.subheader("Cross-Validation Fold Metrics Breakdown")
             
             fold_df = pd.DataFrame(model_metrics['fold_metrics'])
             if 'r2_score_log' in fold_df.columns:
@@ -196,79 +293,72 @@ if preds_hh is not None and preds_pov is not None:
             else:
                 fold_df.columns = ['Fold', 'RMSE', 'R² (Raw)', 'MAE']
             
-            # Display fold table
-            format_dict = {'RMSE': '{:.4f}', 'R² (Raw)': '{:.4f}', 'MAE': '{:.4f}'}
-            highlight_r2_col = 'R² (Raw)'
-            if 'R² (Log)' in fold_df.columns:
-                format_dict['R² (Log)'] = '{:.4f}'
-                highlight_r2_col = 'R² (Log)'
+            fold_df['Fold Name'] = [f"Fold {i+1}" for i in range(len(fold_df))]
             
-            st.dataframe(
-                fold_df.style.format(format_dict)
-                .highlight_min(subset=['RMSE', 'MAE'], color='#d4edda')
-                .highlight_max(subset=[highlight_r2_col], color='#d4edda'),
-                use_container_width=True,
-                hide_index=True
-            )
-            
-            # Bar chart of fold metrics
-            st.write("")
             chart_col1, chart_col2 = st.columns(2)
-            
             with chart_col1:
-                st.write("**RMSE by Fold**")
-                rmse_chart = pd.DataFrame({
-                    'RMSE': fold_df['RMSE'].values
-                }, index=[f"Fold {i+1}" for i in range(len(fold_df))])
-                st.bar_chart(rmse_chart)
-            
+                fig_rmse = px.bar(fold_df, x='Fold Name', y='RMSE', text='RMSE', title='RMSE by Fold', color='RMSE', color_continuous_scale='Blues')
+                fig_rmse.update_traces(texttemplate='%{text:.4f}', textposition='outside')
+                fig_rmse.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='white', margin=dict(t=50, b=0))
+                st.plotly_chart(fig_rmse, use_container_width=True)
             with chart_col2:
                 r2_col = 'R² (Log)' if 'R² (Log)' in fold_df.columns else 'R² (Raw)'
-                st.write(f"**{r2_col} by Fold**")
-                r2_chart = pd.DataFrame({
-                    r2_col: fold_df[r2_col].values
-                }, index=[f"Fold {i+1}" for i in range(len(fold_df))])
-                st.bar_chart(r2_chart)
-                
-        else:
-            st.warning(
-                "⚠️ **Model metrics not found.** Please re-run `model_pipeline.py` to generate "
-                "`model_metrics.json` with accuracy and RMSE data."
-            )
-            st.code("python model_pipeline.py", language="bash")
+                fig_r2 = px.bar(fold_df, x='Fold Name', y=r2_col, text=r2_col, title=f'{r2_col} by Fold', color=r2_col, color_continuous_scale='Teal')
+                fig_r2.update_traces(texttemplate='%{text:.4f}', textposition='outside')
+                fig_r2.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='white', margin=dict(t=50, b=0))
+                st.plotly_chart(fig_r2, use_container_width=True)
+            
+            with st.expander("Detailed Cross-Validation Fold Metrics", expanded=False):
+                st.dataframe(fold_df.drop(columns=['Fold Name']), use_container_width=True)
 
-    # --- TAB 3: POVERTY EXPLORER ---
+    # --- TAB 3: POVERTY EXPLORER (SPLINE & LIVE SIMULATION) ---
     with tab3:
         st.header("📉 Poverty Rate Extrapolation Curves")
-        st.write("Tracing the predicted poverty concentration over increasing expenditure thresholds by survey.")
         
         if not preds_pov.empty:
             pov_melt = preds_pov.melt(id_vars='survey_id', var_name='threshold', value_name='poverty_rate')
             pov_melt['threshold_value'] = pov_melt['threshold'].str.replace('pct_hh_below_', '').astype(float)
-            chart_data = pov_melt.pivot(index='threshold_value', columns='survey_id', values='poverty_rate')
+            pov_melt['survey_id'] = pov_melt['survey_id'].astype(str)
+            pov_melt = pov_melt.sort_values(by='threshold_value')
             
-            st.line_chart(chart_data)
-            st.caption("X-Axis: Daily Consumption Threshold ($ PPP17) | Y-Axis: Predicted % of Population in Poverty")
-
-    # --- TAB 4: HOUSEHOLD CONSUMPTION ---
-    with tab4:
-        st.header("🏠 Micro-Economic Household Distributions")
-        st.write("Analyzing the raw spread of predicted daily per capita consumptions across individual households.")
-        
-        survey_filter = st.selectbox("Select Survey Area to Inspect:", ["All"] + list(preds_hh['survey_id'].unique()))
-        
-        if survey_filter != "All":
-            filtered_hh = preds_hh[preds_hh['survey_id'] == survey_filter]
-        else:
-            filtered_hh = preds_hh
+            chart_placeholder = st.empty()
             
-        bins = np.linspace(0, filtered_hh['cons_ppp17'].max(), 50)
-        hist_values, _ = np.histogram(filtered_hh['cons_ppp17'], bins=bins)
-        
-        chart_dict = pd.DataFrame({"Count of Households": hist_values}, index=np.round(bins[:-1], 2))
-        
-        st.bar_chart(chart_dict)
-        st.caption(f"Consumption Density Histogram for Survey Area: {survey_filter}")
-        
+            if live_simulation:
+                # Simulate data arriving point by point
+                unique_thresholds = sorted(pov_melt['threshold_value'].unique())
+                for i in range(1, len(unique_thresholds) + 1):
+                    current_thresholds = unique_thresholds[:i]
+                    current_data = pov_melt[pov_melt['threshold_value'].isin(current_thresholds)]
+                    
+                    fig = px.area(
+                        current_data, 
+                        x='threshold_value', 
+                        y='poverty_rate', 
+                        color='survey_id', 
+                        line_shape='spline', # Smooth curves
+                        title="Live Data Feed: Extrapolated Poverty Curves",
+                        labels={"threshold_value": "Daily Consumption Threshold ($)", "poverty_rate": "Predicted % in Poverty"}
+                    )
+                    fig.update_layout(hovermode='x unified', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(255,255,255,0.02)', font_color='white')
+                    fig.update_yaxes(tickformat=".1%", range=[0, 1])
+                    fig.update_xaxes(range=[0, max(unique_thresholds)])
+                    
+                    chart_placeholder.plotly_chart(fig, use_container_width=True)
+                    time.sleep(0.15)
+            else:
+                # Static smooth area chart
+                fig = px.area(
+                    pov_melt, 
+                    x='threshold_value', 
+                    y='poverty_rate', 
+                    color='survey_id', 
+                    line_shape='spline', # Smooth curves
+                    title="Extrapolated Poverty Curves by Threshold",
+                    labels={"threshold_value": "Daily Consumption Threshold ($)", "poverty_rate": "Predicted % in Poverty"}
+                )
+                fig.update_layout(hovermode='x unified', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(255,255,255,0.02)', font_color='white')
+                fig.update_yaxes(tickformat=".1%")
+                chart_placeholder.plotly_chart(fig, use_container_width=True)
+                
 else:
     st.info("Please generate the predictions to view the dashboard.")
