@@ -36,3 +36,6 @@ Features include:
 1. **Clone the Repo:**
    ```bash
    git clone (https://github.com/Mrgaurav2k04/imputing-consumption-and-predict-poverty-rates)
+2. **Streamlit Dashboard**
+   https://imputing-consumption-and-predict-poverty-rates.streamlit.app/
+   
