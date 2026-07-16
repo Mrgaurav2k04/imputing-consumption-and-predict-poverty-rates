@@ -6,3 +6,5 @@ scikit-learn
 lightgbm
 catboost
 plotly
+streamlit-lottie
+requests
